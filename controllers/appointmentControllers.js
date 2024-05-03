@@ -3,7 +3,29 @@ import { pool } from '../database/dbConnection.js';
 
 export const getAllAppointments = async (req, res, next) => {
     try {
-        const [appointments] = await pool.query('SELECT * FROM appointment');
+        
+        const [appointments] = await pool.query(`
+        SELECT
+        a.first_name,
+        a.last_name,
+        a.sex,
+        a.DOB,
+        a.title,
+        a.reason_for_visit,
+        a.user_id,
+        (
+            SELECT u.id
+            FROM users u
+            WHERE u.first_name = a.first_name
+            AND u.last_name = a.last_name
+            LIMIT 1 -- Ensures the query returns only one id from users
+        ) AS user_id_from_users_table
+    FROM
+        appointment a;
+    
+    
+        `);
+
         res.status(200).json({
             status: 'success',
             results: appointments.length,
@@ -19,36 +41,45 @@ export const getAllAppointments = async (req, res, next) => {
 };
 
 
-export const getSingleAppointment = async(req, res, next) => {
+
+export const getSingleAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
         const [appointment] = await pool.query('SELECT * FROM appointment WHERE id = ?', [id]);
+
+        if (appointment.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Appointment not found with the specified ID',
+            });
+        }
+
         res.status(200).json({
-            status:'success',
-            results: appointment.length,
+            status: 'success',
+            results: 1,
             data: { appointment: appointment[0] },
         });
     } catch (error) {
         console.error('Error fetching appointment:', error);
         res.status(500).json({
             status: 'error',
-            message: 'An error occurred while fetching appointment',
+            message: 'An error occurred while fetching the appointment',
         });
     }
-}
+};
+
 
 
 
 export const updateAppointment = async (req, res, next) => {
     const appointmentData = {
         id: req.params.id,
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
+        user_id: req.body.user_id,
         sex: req.body.sex,
         DOB: req.body.DOB,
         title: req.body.title,
-        reason_for_visit: req.body.reason_for_visit,
-        user_id: req.body.user_id,
+        reason_for_visit: req.body.reason_for_visit
+       
     };
 
     console.log('Received id:', appointmentData.id);
@@ -57,20 +88,18 @@ export const updateAppointment = async (req, res, next) => {
 
     const sqlQuery = `
         UPDATE appointment
-        SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, user_id = ?
+        SET user_id = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?
         WHERE id = ?
     `;
 
     try {
         await pool.query(sqlQuery, [
-            appointmentData.first_name,
-            appointmentData.last_name,
+            appointmentData.user_id,
             appointmentData.sex,
             dobConverted,
             appointmentData.title,
             appointmentData.reason_for_visit,
-            appointmentData.user_id,
-            appointmentData.id,
+            appointmentData.id
         ]);
 
         res.status(200).json({
@@ -142,37 +171,15 @@ export const createAppointment = async (req, res, next) => {
 
 
 
-export const getAllAppointmentsJoin = async (req, res, next) => {
-    try {
-        const [appointments] = await pool.query(`
-            SELECT *, users.first_name AS user_first_name, users.last_name AS user_last_name
-            FROM appointment
-            JOIN users ON appointment.user_id = users.id
-        `);
-
-        res.status(200).json({
-            status: 'success',
-            results: appointments.length,
-            data: { appointments },
-        });
-    } catch (error) {
-        console.error('Error fetching appointments with join:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'An error occurred while fetching appointments with join',
-        });
-    }
-}
-
-
-
-
-
 
 export const deleteAppointment = async(req, res, next) => {
     try {
         const { id } = req.params;
-        const [appointment] = await pool.query('DELETE FROM appointment WHERE id = ?', [id]);
+        const [appointment] = await pool.query
+        (`DELETE FROM appointment WHERE user_id = ?
+          ON DELETE CASCADE
+        `, [id]);
+        
         res.status(200).json({
             status:'success',
             results: appointment.length,
