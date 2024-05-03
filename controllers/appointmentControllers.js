@@ -12,6 +12,8 @@ export const getAllAppointments = async (req, res, next) => {
         a.DOB,
         a.title,
         a.reason_for_visit,
+        a.phone,
+        a.doctor_name,
         a.user_id,
         (
             SELECT u.id
@@ -70,42 +72,55 @@ export const getSingleAppointment = async (req, res, next) => {
 
 
 
-
 export const updateAppointment = async (req, res, next) => {
-    const appointmentData = {
-        id: req.params.id,
-        user_id: req.body.user_id,
-        sex: req.body.sex,
-        DOB: req.body.DOB,
-        title: req.body.title,
-        reason_for_visit: req.body.reason_for_visit
-       
-    };
-
-    console.log('Received id:', appointmentData.id);
-
-    const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
-
-    const sqlQuery = `
-        UPDATE appointment
-        SET user_id = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?
-        WHERE id = ?
-    `;
-
     try {
-        await pool.query(sqlQuery, [
-            appointmentData.user_id,
+        const { id } = req.params; // Use the id from the URL parameters
+        
+        const appointmentData = {
+            first_name: req.body.first_name,
+            last_name: req.body.last_name,
+            sex: req.body.sex,
+            DOB: req.body.DOB,
+            title: req.body.title,
+            reason_for_visit: req.body.reason_for_visit,
+            doctor_name: req.body.doctor_name,
+            phone: req.body.phone,
+            user_id: req.body.user_id
+        };
+
+        const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
+
+        const sqlQuery = `
+            UPDATE appointment
+            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?, user_id = ?
+            WHERE id = ?
+        `;
+
+        const updateResult = await pool.query(sqlQuery, [
+            appointmentData.first_name,
+            appointmentData.last_name,
             appointmentData.sex,
             dobConverted,
             appointmentData.title,
             appointmentData.reason_for_visit,
-            appointmentData.id
+            appointmentData.doctor_name,
+            appointmentData.phone,
+            appointmentData.user_id,
+            id
         ]);
+
+        // Check if any rows were updated
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'No appointment found with the given id',
+            });
+        }
 
         res.status(200).json({
             status: 'success',
             message: 'Appointment updated successfully',
-            data: { appointmentData: appointmentData },
+            data: appointmentData,
         });
     } catch (error) {
         console.error('Error updating appointment:', error);
@@ -117,8 +132,6 @@ export const updateAppointment = async (req, res, next) => {
 };
 
 
-
-
 export const createAppointment = async (req, res, next) => {
     const appointmentData = {
         first_name: req.body.first_name,
@@ -126,6 +139,8 @@ export const createAppointment = async (req, res, next) => {
         sex: req.body.sex,
         DOB: req.body.DOB,
         title: req.body.title,
+        phone: req.body.phone,
+        doctor_name: req.body.doctor_name,
         reason_for_visit: req.body.reason_for_visit,
         user_id: req.body.user_id,
     };
@@ -133,8 +148,8 @@ export const createAppointment = async (req, res, next) => {
     const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
 
     const sqlQuery = `
-        INSERT INTO appointment (first_name, last_name, sex, DOB, title, reason_for_visit, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO appointment (first_name, last_name, sex, DOB, title, phone, doctor_name, reason_for_visit, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try {
@@ -144,6 +159,8 @@ export const createAppointment = async (req, res, next) => {
             appointmentData.sex,
             dobConverted,
             appointmentData.title,
+            appointmentData.phone,
+            appointmentData.doctor_name,
             appointmentData.reason_for_visit,
             appointmentData.user_id,
         ]);
@@ -172,24 +189,30 @@ export const createAppointment = async (req, res, next) => {
 
 
 
-export const deleteAppointment = async(req, res, next) => {
+export const deleteAppointment = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const [appointment] = await pool.query
-        (`DELETE FROM appointment WHERE user_id = ?
-          ON DELETE CASCADE
-        `, [id]);
-        
+        const { user_id } = req.params;
+
+        const [result] = await pool.query(
+            `DELETE FROM appointment WHERE user_id = ?`, [user_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'No appointments found for the specified user_id',
+            });
+        }
+
         res.status(200).json({
-            status:'success',
-            results: appointment.length,
-            data: { appointment: appointment[0] },
+            status: 'success',
+            message: `Successfully deleted ${result.affectedRows} appointment(s) for user_id ${user_id}`,
         });
     } catch (error) {
-        console.error('Error fetching appointment:', error);
+        console.error('Error deleting appointments:', error);
         res.status(500).json({
             status: 'error',
-            message: 'An error occurred while fetching appointment',
+            message: 'An error occurred while deleting appointments',
         });
     }
-}
+};
