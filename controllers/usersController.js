@@ -76,7 +76,7 @@ export const createUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [user] = await pool.query('DELETE FROM users WHERE id =?', [id]);
+        const [user] = await pool.query('DELETE FROM doctors WHERE id =?', [id]);
         res.status(200).json({
             status:'success',
             results: user.length,
