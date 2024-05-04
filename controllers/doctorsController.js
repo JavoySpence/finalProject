@@ -14,11 +14,45 @@ doctorsRouter.use(fileUpload());
 
 
 
+// export const getAllDoctors = async (req, res, next) => {
+//     try {
+//         const [doctors] = await pool.query('SELECT * FROM doctors');
+//         res.status(200).json({
+//             status:'success',
+//             results: doctors.length,
+//             data: { doctors },
+//         });
+//     } catch (error) {
+//         console.error('Error fetching doctors:', error);
+//         res.status(500).json({
+//             status: 'error',
+//         });
+//     }
+// }
 export const getAllDoctors = async (req, res, next) => {
     try {
-        const [doctors] = await pool.query('SELECT * FROM doctors');
+         
+        const query = `
+        SELECT
+        d.id,
+        d.first_name,
+        d.last_name,
+        d.speciality,
+        d.image,
+        (
+            SELECT s.id
+            FROM specialities s
+            WHERE s.speciality_name = d.speciality
+            LIMIT 1 -- Ensures the query returns only one id from specialities
+        ) AS speciality_id_from_specialities_table
+    FROM
+        doctors d;
+        `;
+
+        const [doctors] = await pool.query(query);
+
         res.status(200).json({
-            status:'success',
+            status: 'success',
             results: doctors.length,
             data: { doctors },
         });
@@ -26,9 +60,11 @@ export const getAllDoctors = async (req, res, next) => {
         console.error('Error fetching doctors:', error);
         res.status(500).json({
             status: 'error',
+            message: 'Error fetching doctors',
+            error: error.message,
         });
     }
-}
+};
 
 export const createDoctor = async (req, res) => {
     try {

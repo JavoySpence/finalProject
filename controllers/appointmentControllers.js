@@ -14,7 +14,7 @@ export const getAllAppointments = async (req, res, next) => {
         a.reason_for_visit,
         a.phone,
         a.doctor_name,
-        a.user_id,
+       
         (
             SELECT u.id
             FROM users u
@@ -74,42 +74,38 @@ export const getSingleAppointment = async (req, res, next) => {
 
 export const updateAppointment = async (req, res, next) => {
     try {
-        const { id } = req.params; // Use the id from the URL parameters
-        
-        const appointmentData = {
-            first_name: req.body.first_name,
-            last_name: req.body.last_name,
-            sex: req.body.sex,
-            DOB: req.body.DOB,
-            title: req.body.title,
-            reason_for_visit: req.body.reason_for_visit,
-            doctor_name: req.body.doctor_name,
-            phone: req.body.phone,
-            user_id: req.body.user_id
-        };
+        const { id } = req.params;
+        const {
+            first_name,
+            last_name,
+            sex,
+            DOB,
+            title,
+            reason_for_visit,
+            doctor_name,
+            phone
+        } = req.body;
 
-        const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
+        const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
 
         const sqlQuery = `
             UPDATE appointment
-            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?, user_id = ?
+            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?
             WHERE id = ?
         `;
 
         const updateResult = await pool.query(sqlQuery, [
-            appointmentData.first_name,
-            appointmentData.last_name,
-            appointmentData.sex,
+            first_name,
+            last_name,
+            sex,
             dobConverted,
-            appointmentData.title,
-            appointmentData.reason_for_visit,
-            appointmentData.doctor_name,
-            appointmentData.phone,
-            appointmentData.user_id,
-            id
+            title,
+            reason_for_visit,
+            doctor_name,
+            phone,
+            id // Correctly passing the ID parameter
         ]);
 
-        // Check if any rows were updated
         if (updateResult.affectedRows === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -120,7 +116,17 @@ export const updateAppointment = async (req, res, next) => {
         res.status(200).json({
             status: 'success',
             message: 'Appointment updated successfully',
-            data: appointmentData,
+            data: {
+                id,
+                first_name,
+                last_name,
+                sex,
+                DOB: dobConverted,
+                title,
+                reason_for_visit,
+                doctor_name,
+                phone,
+            },
         });
     } catch (error) {
         console.error('Error updating appointment:', error);
@@ -130,6 +136,7 @@ export const updateAppointment = async (req, res, next) => {
         });
     }
 };
+
 
 
 export const createAppointment = async (req, res, next) => {
@@ -142,14 +149,15 @@ export const createAppointment = async (req, res, next) => {
         phone: req.body.phone,
         doctor_name: req.body.doctor_name,
         reason_for_visit: req.body.reason_for_visit,
-        user_id: req.body.user_id,
+        // user_id: req.body.user_id,
     };
 
     const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
 
     const sqlQuery = `
-        INSERT INTO appointment (first_name, last_name, sex, DOB, title, phone, doctor_name, reason_for_visit, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO appointment (first_name, last_name, sex, DOB, title, phone, doctor_name, reason_for_visit)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    
     `;
 
     try {
