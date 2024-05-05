@@ -3,31 +3,15 @@ import { pool } from '../database/dbConnection.js';
 
 export const getAllAppointments = async (req, res, next) => {
     try {
-        
-        const [appointments] = await pool.query(`
-        SELECT
-        a.first_name,
-        a.last_name,
-        a.sex,
-        a.DOB,
-        a.title,
-        a.reason_for_visit,
-        a.phone,
-        a.doctor_name,
-       
-        (
-            SELECT u.id
-            FROM users u
-            WHERE u.first_name = a.first_name
-            AND u.last_name = a.last_name
-            LIMIT 1 -- Ensures the query returns only one id from users
-        ) AS user_id_from_users_table
-    FROM
-        appointment a;
-    
-    
-        `);
+        // Define the query with a subquery to retrieve the corresponding `id` from `users` based on `first_name` and `last_name`
+        const query = `
+            SELECT * FROM appointment a;
+        `;
 
+        // Execute the query
+        const [appointments] = await pool.query(query);
+
+        // Respond with the appointments data
         res.status(200).json({
             status: 'success',
             results: appointments.length,
@@ -44,10 +28,11 @@ export const getAllAppointments = async (req, res, next) => {
 
 
 
+
 export const getSingleAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [appointment] = await pool.query('SELECT * FROM appointment WHERE id = ?', [id]);
+        const [appointment] = await pool.query(`SELECT * FROM appointment WHERE  = ?`, [id]);
 
         if (appointment.length === 0) {
             return res.status(404).json({
@@ -61,7 +46,8 @@ export const getSingleAppointment = async (req, res, next) => {
             results: 1,
             data: { appointment: appointment[0] },
         });
-    } catch (error) {
+
+       } catch (error) {
         console.error('Error fetching appointment:', error);
         res.status(500).json({
             status: 'error',
@@ -128,49 +114,63 @@ export const updateAppointment = async (req, res, next) => {
                 phone,
             },
         });
-    } catch (error) {
+        } catch (error) {
         console.error('Error updating appointment:', error);
         res.status(500).json({
             status: 'error',
             message: 'An error occurred while updating the appointment',
         });
-    }
+       }
 };
 
-
-
 export const createAppointment = async (req, res, next) => {
-    const appointmentData = {
-        first_name: req.body.first_name,
-        last_name: req.body.last_name,
-        sex: req.body.sex,
-        DOB: req.body.DOB,
-        title: req.body.title,
-        phone: req.body.phone,
-        doctor_name: req.body.doctor_name,
-        reason_for_visit: req.body.reason_for_visit,
-        // user_id: req.body.user_id,
-    };
-
-    const dobConverted = new Date(appointmentData.DOB).toISOString().slice(0, 19).replace('T', ' ');
-
-    const sqlQuery = `
-    INSERT INTO appointment (first_name, last_name, sex, DOB, title, phone, doctor_name, reason_for_visit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    
-    `;
-
     try {
-        const result = await pool.query(sqlQuery, [
-            appointmentData.first_name,
-            appointmentData.last_name,
-            appointmentData.sex,
+        const {
+            first_name,
+            last_name,
+            sex,
+            DOB,
+            title,
+            reason_for_visit,
+            doctor_name,
+            phone,
+            medical_history,
+            medications_taken,
+        } = req.body;
+
+        const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
+
+        const [user] = await pool.query(
+            'SELECT id FROM users WHERE first_name = ? AND last_name = ? LIMIT 1',
+            [first_name, last_name]
+        );
+
+        if (user.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found',
+            });
+        }
+
+        const userId = user[0].id;
+
+        const sqlQuery = `
+            INSERT INTO appointment (id, first_name, last_name, sex, DOB, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const [result] = await pool.query(sqlQuery, [
+            userId,
+            first_name,
+            last_name,
+            sex,
             dobConverted,
-            appointmentData.title,
-            appointmentData.phone,
-            appointmentData.doctor_name,
-            appointmentData.reason_for_visit,
-            appointmentData.user_id,
+            title,
+            reason_for_visit,
+            doctor_name,
+            phone,
+            medical_history || 'None',
+            medications_taken || 'None',
         ]);
 
         res.status(201).json({
@@ -178,11 +178,16 @@ export const createAppointment = async (req, res, next) => {
             message: 'Appointment created successfully',
             data: {
                 appointmentId: result.insertId,
-                appointmentData: {
-                    ...appointmentData,
-                    id: result.insertId,
-                    DOB: dobConverted,
-                },
+                first_name,
+                last_name,
+                sex,
+                DOB: dobConverted,
+                title,
+                reason_for_visit,
+                doctor_name,
+                phone,
+                medical_history,
+                medications_taken,
             },
         });
     } catch (error) {
@@ -190,10 +195,10 @@ export const createAppointment = async (req, res, next) => {
         res.status(500).json({
             status: 'error',
             message: 'An error occurred while creating the appointment',
+            error: error.message,
         });
     }
 };
-
 
 
 

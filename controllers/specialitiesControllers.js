@@ -16,6 +16,7 @@ export const getAllSpecialities = async (req, res, next) => {
     }
 }
 
+
 export const deleteSpeciality = async (req, res, next) => {
     try {
         const { speciality_id } = req.params;
@@ -42,3 +43,25 @@ export const deleteSpeciality = async (req, res, next) => {
 }
 
 
+export const createSpeciality = async (req, res, next) => {
+    try {
+        const { speciality_name } = req.body;
+        const [result] = await pool.query('INSERT INTO specialities (speciality_name) VALUES (?)', [speciality_name]);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Speciality created successfully',
+            data: {
+                id: result.insertId,
+                speciality_name,
+            },
+        });
+    } catch (error) {
+        console.error('Error creating speciality:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Failed to create speciality',
+            error: error.message,
+        });
+    }
+};
