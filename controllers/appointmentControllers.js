@@ -8,15 +8,16 @@ export const getAllAppointments = async (req, res, next) => {
             SELECT * FROM appointment a;
         `;
 
-        // Execute the query
+        
         const [appointments] = await pool.query(query);
 
-        // Respond with the appointments data
+    
         res.status(200).json({
             status: 'success',
             results: appointments.length,
             data: { appointments },
         });
+
     } catch (error) {
         console.error('Error fetching appointments:', error);
         res.status(500).json({
@@ -89,7 +90,7 @@ export const updateAppointment = async (req, res, next) => {
             reason_for_visit,
             doctor_name,
             phone,
-            id // Correctly passing the ID parameter
+            id 
         ]);
 
         if (updateResult.affectedRows === 0) {
@@ -123,6 +124,8 @@ export const updateAppointment = async (req, res, next) => {
        }
 };
 
+
+
 export const createAppointment = async (req, res, next) => {
     try {
         const {
@@ -148,7 +151,7 @@ export const createAppointment = async (req, res, next) => {
         if (user.length === 0) {
             return res.status(404).json({
                 status: 'error',
-                message: 'User not found',
+                message: 'Only users can make appointments please sign up ',
             });
         }
 

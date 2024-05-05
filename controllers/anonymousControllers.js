@@ -8,6 +8,7 @@ export const getAnnonymousFeedbacks = async (req, res, next) => {
             results: time.length,
             data: { time },
         });
+
     } catch (error) {
         console.error('Error fetching time data:', error);
         res.status(500).json({
@@ -26,6 +27,7 @@ export const deleteAnnonymousFeedbacks = async (req, res, next) => {
             status:'success',
             message: 'Annonymous feedback deleted successfully',
         });
+
     } catch (error) {
         console.error('Error deleting annonymous feedback:', error);
         res.status(500).json({
@@ -45,6 +47,7 @@ export const createAnnonymousFeedbacks = async (req, res, next) => {
             message: 'Annonymous feedback created successfully',
             data: { feedback },
         });
+        
     } catch (error) {
         console.error('Error creating annonymous feedback:', error);
         res.status(500).json({

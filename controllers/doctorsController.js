@@ -14,39 +14,12 @@ doctorsRouter.use(fileUpload());
 
 
 
-// export const getAllDoctors = async (req, res, next) => {
-//     try {
-//         const [doctors] = await pool.query('SELECT * FROM doctors');
-//         res.status(200).json({
-//             status:'success',
-//             results: doctors.length,
-//             data: { doctors },
-//         });
-//     } catch (error) {
-//         console.error('Error fetching doctors:', error);
-//         res.status(500).json({
-//             status: 'error',
-//         });
-//     }
-// }
+
 export const getAllDoctors = async (req, res, next) => {
     try {
          
         const query = `
-        SELECT
-        d.id,
-        d.first_name,
-        d.last_name,
-        d.speciality,
-        d.image,
-        (
-            SELECT s.id
-            FROM specialities s
-            WHERE s.speciality_name = d.speciality
-            LIMIT 1 -- Ensures the query returns only one id from specialities
-        ) AS speciality_id_from_specialities_table
-    FROM
-        doctors d;
+     SELECT * FROM doctors ;
         `;
 
         const [doctors] = await pool.query(query);
@@ -69,48 +42,61 @@ export const getAllDoctors = async (req, res, next) => {
 export const createDoctor = async (req, res) => {
     try {
         const { first_name, last_name, speciality } = req.body;
-        
+
+        // Validate required fields
         if (!first_name || !last_name || !speciality) {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
 
-        const newEntry = new Object();
-        newEntry.first_name = req.body.first_name;
-        newEntry.last_name = req.body.last_name;
-        newEntry.speciality = req.body.speciality;
-        newEntry.image = '';
+        // Create new doctor entry
+        const newEntry = {
+            first_name,
+            last_name,
+            speciality,
+            image: '',
+        };
 
+        // Handle image upload
         if (req.files && req.files.image) {
             const uploadedFile = req.files.image;
             const fileName = `${getRandomHexValues(8)}_${uploadedFile.name}`;
             const uploadPath = path.join(__dirname, 'uploads', fileName);
 
+            // Create the uploads directory if it doesn't exist
             if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
                 fs.mkdirSync(path.join(__dirname, 'uploads'));
             }
 
+            // Move the uploaded file to the designated path
             await uploadedFile.mv(uploadPath);
             newEntry.image = fileName;
         } else {
             newEntry.image = 'default-avatar.png';
         }
 
+        // Insert the new doctor entry into the database
         const sqlQuery = `
             INSERT INTO doctors (first_name, last_name, speciality, image)
             VALUES (?, ?, ?, ?);
         `;
         const queryParams = [newEntry.first_name, newEntry.last_name, newEntry.speciality, newEntry.image];
         
-        await pool.query(sqlQuery, queryParams);
+        const [result] = await pool.query(sqlQuery, queryParams);
 
-        res.redirect('/api/v1/doctors');
+        // Return a success response with information about the newly created doctor
+        res.status(201).json({
+            success: true,
+            message: 'Doctor created successfully',
+            data: {
+                doctorId: result.insertId,
+                ...newEntry,
+            },
+        });
     } catch (error) {
         console.error('Error in createDoctor:', error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
+        res.status(500).json({ success: false, message: 'Internal Server Error', error: error.message });
     }
 };
-
-
 export const deleteDoctor = async (req, res) => {
     try {
         const { id } = req.params;

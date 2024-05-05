@@ -9,6 +9,7 @@ export const getAllTime = async (req, res, next) => {
             results: time.length,
             data: { time },
         });
+        
     } catch (error) {
         console.error('Error fetching time data:', error);
         res.status(500).json({
