@@ -5,11 +5,12 @@
 
 
 import express from 'express';
-import {getAllSex} from '../controllers/sexControllers.js';
+import {getAllSex, } from '../controllers/sexControllers.js';
 
 export const sexRouter = express.Router();
 
 sexRouter
    .route('/')
    .get(getAllSex)
+   
 

@@ -4,7 +4,7 @@
 // DATE CREATED: 1/5/2024
 
 import express from 'express';
-import { getAllUsers, getSingleUser, createUser, deleteUser} from '../controllers/usersController.js';
+import { getAllUsers, getSingleUser, createUser, deleteUser, updateUser} from '../controllers/usersController.js';
 
 export const usersRouter = express.Router();
 
@@ -12,11 +12,12 @@ export const usersRouter = express.Router();
 usersRouter
   .route('/')
   .get(getAllUsers)
-  .post(createUser);
+ 
 
-//   usersRoutes with id
+// usersRoutes with id
 usersRouter
   .route('/:id')
   .get(getSingleUser)
-  .delete(deleteUser);
+  .delete(deleteUser)
+  .put( updateUser);
 

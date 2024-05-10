@@ -44,14 +44,15 @@ export const createUser = async (req, res, next) => {
         newEntry.first_name = req.body.first_name;
         newEntry.last_name = req.body.last_name;
         newEntry.password = req.body.password;
+        newEntry.age = req.body.age
 
         const salt = await bcrypt.genSalt(saltRounds);
         const hashedPassword = await bcrypt.hash(newEntry.password, salt);
         newEntry.password = hashedPassword;
 
         const [result] = await pool.query(
-            `INSERT INTO users (first_name, last_name, password) VALUES (?, ?, ?)`,
-            [newEntry.first_name, newEntry.last_name, newEntry.password]
+            `INSERT INTO users (first_name, last_name, password, age) VALUES (?, ?, ?,?)`,
+            [newEntry.first_name, newEntry.last_name, newEntry.password,newEntry.age]
         );
 
         res.status(201).json({
@@ -61,6 +62,7 @@ export const createUser = async (req, res, next) => {
                 user_id: result.insertId,
                 first_name: newEntry.first_name,
                 last_name: newEntry.last_name,
+                age: newEntry.age,
             },
         });
     } catch (error) {
@@ -76,7 +78,7 @@ export const createUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [user] = await pool.query('DELETE FROM doctors WHERE id =?', [id]);
+        const [user] = await pool.query('DELETE FROM users WHERE id =?', [id]);
         res.status(200).json({
             status:'success',
             results: user.length,
@@ -89,4 +91,47 @@ export const deleteUser = async (req, res, next) => {
         });
     }
 }
+
+
+
+export const updateUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { first_name, last_name, age, password, email } = req.body;
+
+        const [result] = await pool.query(`
+            UPDATE users
+            SET first_name = ?, last_name = ?, age = ?, password = ?, email = ?
+            WHERE id = ?`,
+            [first_name, last_name, age, password, email, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found or update failed.',
+            });
+        }
+
+        const [updatedUser] = await pool.query(`
+            SELECT * FROM users
+            WHERE id = ?`,
+            [id]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: 'User updated successfully.',
+            data: updatedUser[0],
+        });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'An error occurred while updating the user.',
+        });
+    }
+};
+
+  
 

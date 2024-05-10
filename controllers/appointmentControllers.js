@@ -33,7 +33,7 @@ export const getAllAppointments = async (req, res, next) => {
 export const getSingleAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [appointment] = await pool.query(`SELECT * FROM appointment WHERE  = ?`, [id]);
+        const [appointment] = await pool.query(`SELECT * FROM appointment WHERE id = ?`, [id]);
 
         if (appointment.length === 0) {
             return res.status(404).json({
@@ -58,7 +58,6 @@ export const getSingleAppointment = async (req, res, next) => {
 };
 
 
-
 export const updateAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -70,14 +69,16 @@ export const updateAppointment = async (req, res, next) => {
             title,
             reason_for_visit,
             doctor_name,
-            phone
+            phone,
+            appointment_date,
         } = req.body;
 
         const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
+        const appointmentDateConverted = new Date(appointment_date).toISOString().slice(0, 19).replace('T', ' ');
 
         const sqlQuery = `
             UPDATE appointment
-            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?
+            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?, appointment_date = ?
             WHERE id = ?
         `;
 
@@ -90,7 +91,8 @@ export const updateAppointment = async (req, res, next) => {
             reason_for_visit,
             doctor_name,
             phone,
-            id 
+            appointmentDateConverted,
+            id,
         ]);
 
         if (updateResult.affectedRows === 0) {
@@ -113,15 +115,16 @@ export const updateAppointment = async (req, res, next) => {
                 reason_for_visit,
                 doctor_name,
                 phone,
+                appointment_date: appointmentDateConverted,
             },
         });
-        } catch (error) {
+    } catch (error) {
         console.error('Error updating appointment:', error);
         res.status(500).json({
             status: 'error',
             message: 'An error occurred while updating the appointment',
         });
-       }
+    }
 };
 
 
@@ -133,6 +136,7 @@ export const createAppointment = async (req, res, next) => {
             last_name,
             sex,
             DOB,
+            appointment_date,
             title,
             reason_for_visit,
             doctor_name,
@@ -142,6 +146,7 @@ export const createAppointment = async (req, res, next) => {
         } = req.body;
 
         const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
+        const appointmentDateConverted = new Date(appointment_date).toISOString().slice(0, 19).replace('T', ' ');
 
         const [user] = await pool.query(
             'SELECT id FROM users WHERE first_name = ? AND last_name = ? LIMIT 1',
@@ -151,15 +156,15 @@ export const createAppointment = async (req, res, next) => {
         if (user.length === 0) {
             return res.status(404).json({
                 status: 'error',
-                message: 'Only users can make appointments please sign up ',
+                message: 'Only users can make appointments. Please sign up.',
             });
         }
 
         const userId = user[0].id;
 
         const sqlQuery = `
-            INSERT INTO appointment (id, first_name, last_name, sex, DOB, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO appointment (user_id, first_name, last_name, sex, DOB, appointment_date, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [result] = await pool.query(sqlQuery, [
@@ -168,6 +173,7 @@ export const createAppointment = async (req, res, next) => {
             last_name,
             sex,
             dobConverted,
+            appointmentDateConverted,
             title,
             reason_for_visit,
             doctor_name,
@@ -185,6 +191,7 @@ export const createAppointment = async (req, res, next) => {
                 last_name,
                 sex,
                 DOB: dobConverted,
+                appointment_date: appointmentDateConverted,
                 title,
                 reason_for_visit,
                 doctor_name,
