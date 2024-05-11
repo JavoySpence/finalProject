@@ -3,6 +3,7 @@ import { pool } from '../database/dbConnection.js';
 export const getAnnonymousFeedbacks = async (req, res, next) => {
     try {
         const [time] = await pool.query('SELECT * FROM annonymous_feedback');
+
         res.status(200).json({
             status: 'success',
             results: time.length,

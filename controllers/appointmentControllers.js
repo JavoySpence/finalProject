@@ -1,23 +1,20 @@
 import { pool } from '../database/dbConnection.js';
+import schedule from 'node-schedule';
+import { sendSMS } from '../utils.js';
+
 
 
 export const getAllAppointments = async (req, res, next) => {
     try {
-        // Define the query with a subquery to retrieve the corresponding `id` from `users` based on `first_name` and `last_name`
-        const query = `
-            SELECT * FROM appointment a;
-        `;
-
         
-        const [appointments] = await pool.query(query);
+        const [appointments] = await pool.query('SELECT * FROM appointment');
+        console.log(appointments)
 
-    
         res.status(200).json({
             status: 'success',
             results: appointments.length,
             data: { appointments },
         });
-
     } catch (error) {
         console.error('Error fetching appointments:', error);
         res.status(500).json({
@@ -128,8 +125,7 @@ export const updateAppointment = async (req, res, next) => {
 };
 
 
-
-export const createAppointment = async (req, res, next) => {
+export const createAppointment = async (req, res) => {
     try {
         const {
             first_name,
@@ -148,43 +144,40 @@ export const createAppointment = async (req, res, next) => {
         const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
         const appointmentDateConverted = new Date(appointment_date).toISOString().slice(0, 19).replace('T', ' ');
 
-        const [user] = await pool.query(
-            'SELECT id FROM users WHERE first_name = ? AND last_name = ? LIMIT 1',
-            [first_name, last_name]
-        );
+        const [user] = await pool.query('SELECT id FROM users WHERE first_name = ? AND last_name = ? LIMIT 1', [first_name, last_name]);
 
         if (user.length === 0) {
             return res.status(404).json({
                 status: 'error',
-                message: 'Only users can make appointments. Please sign up.',
+                message: 'User not found. Please sign up to make appointments.',
             });
         }
 
-        const userId = user[0].id;
+        const id = user[0].id;
 
-        const sqlQuery = `
-            INSERT INTO appointment (user_id, first_name, last_name, sex, DOB, appointment_date, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
+        const [result] = await pool.query(
+            `INSERT INTO appointment 
+                (id, first_name, last_name, sex, DOB, appointment_date, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, first_name, last_name, sex, dobConverted, appointmentDateConverted, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken]
+        );
 
-        const [result] = await pool.query(sqlQuery, [
-            userId,
-            first_name,
-            last_name,
-            sex,
-            dobConverted,
-            appointmentDateConverted,
-            title,
-            reason_for_visit,
-            doctor_name,
-            phone,
-            medical_history || 'None',
-            medications_taken || 'None',
-        ]);
+        const appointmentDateObj = new Date(appointment_date);
+        const reminderTime = new Date(appointmentDateObj);
+        reminderTime.setDate(reminderTime.getDate() - 1);
+        reminderTime.setHours(10, 0, 0, 0);
+
+        const messageBody = `Hello ${first_name} ${last_name}, your appointment with Dr ${doctor_name} scheduled for tomorrow ${appointmentDateConverted}. Please contact us if you have any questions.`;
+
+        console.log(`Scheduling SMS reminder at ${reminderTime.toString()} for phone: ${phone}`);
+
+        schedule.scheduleJob(reminderTime, () => {
+            sendSMS(phone, messageBody);
+        });
 
         res.status(201).json({
             status: 'success',
-            message: 'Appointment created successfully',
+            message: 'Appointment created successfully and reminder SMS scheduled.',
             data: {
                 appointmentId: result.insertId,
                 first_name,
@@ -209,7 +202,6 @@ export const createAppointment = async (req, res, next) => {
         });
     }
 };
-
 
 
 export const deleteAppointment = async (req, res, next) => {
