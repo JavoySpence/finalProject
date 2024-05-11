@@ -8,9 +8,6 @@ export const getRandomHexValues = (len) => {
 };
 
 
-const accountSid = 'AC7334186d3844775252e438d61e62fbc3'; 
-const authToken = 'c0a3f9fbe8d79d02313c20ddf1399226'; 
-const client = twilio(accountSid, authToken);
 
 export function sendSMS(toNumber, messageBody) {
     
