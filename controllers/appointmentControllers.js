@@ -4,6 +4,7 @@ import { sendSMS } from '../utils.js';
 
 
 
+
 export const getAllAppointments = async (req, res, next) => {
     try {
         
@@ -124,8 +125,7 @@ export const updateAppointment = async (req, res, next) => {
     }
 };
 
-
-export const createAppointment = async (req, res) => {
+export const createAppointment = async (req, res, next) => {
     try {
         const {
             first_name,
@@ -145,7 +145,6 @@ export const createAppointment = async (req, res) => {
         const appointmentDateConverted = new Date(appointment_date).toISOString().slice(0, 19).replace('T', ' ');
 
         const [user] = await pool.query('SELECT id FROM users WHERE first_name = ? AND last_name = ? LIMIT 1', [first_name, last_name]);
-
         if (user.length === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -162,18 +161,12 @@ export const createAppointment = async (req, res) => {
             [id, first_name, last_name, sex, dobConverted, appointmentDateConverted, title, reason_for_visit, doctor_name, phone, medical_history, medications_taken]
         );
 
-        const appointmentDateObj = new Date(appointment_date);
-        const reminderTime = new Date(appointmentDateObj);
-        reminderTime.setDate(reminderTime.getDate() - 1);
-        reminderTime.setHours(10, 0, 0, 0);
+        const reminderTime = new Date(appointment_date);
+        reminderTime.setHours(6, 50, 0, 0); 
 
-        const messageBody = `Hello ${first_name} ${last_name}, your appointment with Dr ${doctor_name} scheduled for tomorrow ${appointmentDateConverted}. Please contact us if you have any questions.`;
+        const messageBody = `Hello ${first_name} ${last_name}, your appointment is scheduled for ${appointmentDateConverted}. Please contact us if you have any questions.`;
 
-        console.log(`Scheduling SMS reminder at ${reminderTime.toString()} for phone: ${phone}`);
-
-        schedule.scheduleJob(reminderTime, () => {
-            sendSMS(phone, messageBody);
-        });
+        await sendSMS(phone, messageBody, reminderTime);
 
         res.status(201).json({
             status: 'success',
