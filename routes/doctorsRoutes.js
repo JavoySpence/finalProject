@@ -1,22 +1,15 @@
-// FILE: USERSROUTES.JS
-// CREATED BY: JAVOY SPENCE
-// DESCRIPTION: FILE TO HANDLE DOCTOR ROUTES
-// DATE CREATED: 1/5/2024
-
 import express from 'express';
-import {createDoctor, getAllDoctors, deleteDoctor, getSingleDoctor, updateDoctor} from '../controllers/doctorsController.js';
+import { createDoctor, getAllDoctors, deleteDoctor, getSingleDoctor, updateDoctor } from '../controllers/doctorsController.js';
 import fileUpload from 'express-fileupload';
-
-
 
 export const doctorsRouter = express.Router();
 
 doctorsRouter.use(
    fileUpload({
        limits: {
-           fileSize: 2 * 1024 * 1024, 
+           fileSize: 2 * 1024 * 1024,
        },
-       abortOnLimit: true, 
+       abortOnLimit: true,
    })
 );
 
@@ -24,7 +17,7 @@ doctorsRouter.use(
 doctorsRouter
    .route('/')
    .get(getAllDoctors)
-   .post(createDoctor)
+   .post(createDoctor);
  
 // doctors routes with id
 doctorsRouter
@@ -32,7 +25,3 @@ doctorsRouter
    .get(getSingleDoctor)
    .delete(deleteDoctor)
    .put(updateDoctor);
-
-
-
-

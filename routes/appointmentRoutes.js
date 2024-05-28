@@ -10,18 +10,19 @@ import {
     updateAppointment,
     createAppointment,
     deleteAppointment,
+    getCountOfAppointments,
   
 } from '../controllers/appointmentControllers.js';
 
 export const appointmentRouter = express.Router();
 
-// Routes without ID: for creating a new appointment and fetching all appointments with a join to user details
+
 appointmentRouter
     .route('/')
     .get(getAllAppointments)
     .post(createAppointment);
 
-// Routes with ID: for fetching, updating, and deleting an appointment by its ID
+
 appointmentRouter
     .route('/:id')
     .get(getSingleAppointment)
@@ -29,8 +30,12 @@ appointmentRouter
     .delete(deleteAppointment);
 
  
+ appointmentRouter
+  .route('/count')
+  .get(getCountOfAppointments);
 
-
+ 
+    
 
 
 

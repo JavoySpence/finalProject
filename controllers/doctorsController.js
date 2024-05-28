@@ -215,5 +215,3 @@ export const updateDoctor = async (req, res) => {
         });
     }
 };
-
-
