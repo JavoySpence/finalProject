@@ -34,8 +34,6 @@ export const getAllAppointments = async (req, res, next) => {
 
 
 
-
-
 export const getSingleAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
