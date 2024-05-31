@@ -43,7 +43,7 @@ app.use('/api/v1/specialities', specialitiesRouter);
 app.use('/api/v1/time', timeRouter);
 app.use('/api/v1/sex', sexRouter);
 app.use('/api/v1/annonymous', anonymousRouter);
-app.use('/api/v1/namedFeedback', namedRouter);
+app.use('/api/v1/feedback', namedRouter);
 app.use('/api/v1/appointment_resche', appointment_resche);
 
 // Starting the server

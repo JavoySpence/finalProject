@@ -1,9 +1,17 @@
 import express from 'express';
-import {getNamedFeedbacks} from '../controllers/namedFeedbackControllers.js';
+import { getNamedFeedbacks, createFeedback, deleteFeedback, getSingleFeedbacks } from '../controllers/namedFeedbackControllers.js';
 
-export const namedRouter = express.Router();
+const namedRouter = express.Router();
 
 namedRouter
-   .route('/')
-   .get(getNamedFeedbacks)
-//    .post(createAnnonymousFeedbacks);
+  .route('/')
+  .get(getNamedFeedbacks)
+  .post(createFeedback);
+// .post(createAnnonymousFeedbacks);
+
+namedRouter
+  .route('/:id')
+  .get(getSingleFeedbacks) 
+  .delete(deleteFeedback); 
+
+export { namedRouter };
