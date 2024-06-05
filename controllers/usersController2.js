@@ -15,8 +15,6 @@ function signJWTToken(user) {
     });
 }
 
-
-
 export const registerUser = async (req, res, next) => {
     const sqlQuery = `
         INSERT INTO users (email, password, first_name, last_name, age, role, last_login, status)
@@ -29,15 +27,13 @@ export const registerUser = async (req, res, next) => {
     const vDate = new Date();
     const saltRounds = 10;
 
-    // Check if password is provided and not empty
-    if (!data.password || typeof data.password !== 'string') {
+    if (!data.password || typeof data.password !== 'string' || !data.first_name) {
         return res.status(400).json({
             status: 'error',
-            message: 'Password is required and must be a non-empty string'
+            message: 'Password and first name are required and must be non-empty strings'
         });
     }
 
-    // Hash the password with salt rounds
     try {
         data.password = bcrypt.hashSync(data.password, saltRounds);
     } catch (error) {
@@ -54,24 +50,21 @@ export const registerUser = async (req, res, next) => {
             data.email,
             data.password,
             data.first_name,
-            data.last_name,
-            data.age,
+            data.last_name || null, // Handle the case when last_name is not provided
+            data.age || null, // Handle the case when age is not provided
             vRole,
             vDate,
             vStatus
         ]);
 
-        
         if (result.insertId > 0) {
-            
             const token = signJWTToken({
                 id: result.insertId,
                 role: vRole,
                 firstName: data.first_name,
-                lastName: data.last_name
+                lastName: data.last_name || null // Handle the case when last_name is not provided
             });
 
-            // Respond with success status
             res.status(201).json({
                 status: 'success',
                 data: {
@@ -80,7 +73,7 @@ export const registerUser = async (req, res, next) => {
                         id: result.insertId,
                         email: data.email,
                         first_name: data.first_name,
-                        last_name: data.last_name,
+                        last_name: data.last_name || null, // Handle the case when last_name is not provided
                         role: vRole
                     }
                 }
@@ -99,7 +92,6 @@ export const registerUser = async (req, res, next) => {
         });
     }
 };
-
 
 
 export const loginUser = async (req, res) => {
@@ -156,8 +148,8 @@ export const loginUser = async (req, res) => {
 
 export const protect = async (req, res, next) => {
     const authorization = req.get('Authorization');
-
-    if (!authorization || !authorization.startsWith('Bearer ')) {
+    console.log(`AUTHORIZATION >>${authorization}`);
+    if (!authorization || !authorization.startsWith('Bearer')) {
         return res.status(401).json({
             status: 'error',
             message: 'You must be logged in to access this feature.'
@@ -165,11 +157,14 @@ export const protect = async (req, res, next) => {
     }
 
     const token = authorization.split(' ')[1];
+    console.log(`JWT_SECRET >>${process.env.JWT_SECRET}`)
     const decoded = JWT.verify(token, process.env.JWT_SECRET);
+    console.log(`DECODED >>${JSON.stringify(decoded)}`);
 
     const [rows] = await conn.query("SELECT * FROM users WHERE id = ? AND status = 'ACTV'", [decoded.id]);
     const user = rows[0];
-
+    console.log(`ROWS[0] >>${JSON.stringify(rows[0])}`);
+    console.log(`USER >>${JSON.stringify(user)}`);
     if (!user) {
         return res.status(404).json({
             status: 'error',
@@ -180,6 +175,28 @@ export const protect = async (req, res, next) => {
     user.password = undefined;
     req.user = user;
     next();
+};
+
+export const getThisUser = async (req, res, next)=>{
+    console.log(`inside getThisUser()`)
+   const data = req.user;
+   console.log(`DATA FRom req.user >> ${JSON.stringify(data)}`);
+   if(!data) return next();
+   const [user] = await conn.query(`SELECT * FROM users WHERE id = ?`, [data.id]);
+   console.log(`[User] >> ${JSON.stringify(user)}`);
+   if(!user) {
+    return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+    });
+   }
+   user.password = undefined;
+   res.status(200).json({
+    status:'success',
+    data: {
+        user: user
+    }
+   });
 };
 
 

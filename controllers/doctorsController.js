@@ -83,7 +83,7 @@ export const createDoctor = async (req, res) => {
         
         const [result] = await pool.query(sqlQuery, queryParams);
 
-        // Return a success response with information about the newly created doctor
+       
         res.status(201).json({
             success: true,
             message: 'Doctor created successfully',
@@ -150,11 +150,13 @@ export const getSingleDoctor = async (req, res) => {
     }
 };
 
-
 export const updateDoctor = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`Received doctor ID: ${id}`);
+
         const { first_name, last_name, speciality } = req.body;
+        console.log('Received request body:', req.body);
 
         let newEntry = {
             first_name,
@@ -166,10 +168,15 @@ export const updateDoctor = async (req, res) => {
             const uploadedFile = req.files.image;
             const fileName = `${getRandomHexValues(8)}_${uploadedFile.name}`;
             const uploadPath = path.join(__dirname, 'uploads', fileName);
+            console.log(`Uploading file to: ${uploadPath}`);
+
             if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+                console.log('Uploads directory does not exist. Creating directory...');
                 fs.mkdirSync(path.join(__dirname, 'uploads'));
             }
+
             await uploadedFile.mv(uploadPath);
+            console.log(`File uploaded successfully: ${fileName}`);
             newEntry.image = fileName;
         }
 
@@ -191,16 +198,21 @@ export const updateDoctor = async (req, res) => {
             `;
             queryParams = [newEntry.first_name, newEntry.last_name, newEntry.speciality, id];
         }
+       
+        console.log('Executing SQL Query:', sqlQuery);
+        console.log('With Parameters:', queryParams);
 
         const [result] = await pool.query(sqlQuery, queryParams);
 
         if (result.affectedRows > 0) {
+            console.log('Doctor information updated successfully.');
             res.status(200).json({
                 success: true,
                 message: 'Doctor information updated successfully.',
                 data: newEntry
             });
         } else {
+            console.log('Doctor not found.');
             res.status(404).json({
                 success: false,
                 message: 'Doctor not found.'

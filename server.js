@@ -3,7 +3,6 @@ import morgan from 'morgan';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
 import bodyParser from 'body-parser';
-
 import { appointmentRouter } from './routes/appointmentRoutes.js';
 import { usersRouter } from './routes/usersRoutes.js';
 import { users2Router } from './routes/users2Routes.js';

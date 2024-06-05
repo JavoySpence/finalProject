@@ -23,11 +23,11 @@ export const getNamedFeedbacks = async (req, res, next) => {
 export const getSingleFeedbacks = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const [feedbacks] = await pool.query('SELECT * FROM named_feedback WHERE id = ?', [id]);
+    const [feedback] = await pool.query('SELECT * FROM named_feedback WHERE id = ?', [id]);
     res.status(200).json({
       status:'success',
-      results: feedbacks.length,
-      data: { feedbacks },
+      results: feedback.length,
+      data: { feedback: feedback[0] },
     });
 
   } catch (error) {
