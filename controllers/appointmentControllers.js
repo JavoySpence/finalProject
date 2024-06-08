@@ -2,6 +2,7 @@ import { pool } from '../database/dbConnection.js';
 import schedule from 'node-schedule';
 import { sendEmailNotification } from '../utils/emailUtils.js';
 import { sendReminderEmail } from '../utils/reminderEmailUtils.js';
+import {sendUpdateEmail} from '../utils/updateAppointmentEmail.js';
 
 export const getAllAppointments = async (req, res, next) => {
     try {
@@ -70,11 +71,11 @@ export const getSingleAppointment = async (req, res, next) => {
     }
 };
 
-
 export const updateAppointment = async (req, res, next) => {
     try {
         const { id } = req.params;
         const {
+            email,
             first_name,
             last_name,
             sex,
@@ -86,15 +87,21 @@ export const updateAppointment = async (req, res, next) => {
             appointment_date,
         } = req.body;
 
+        // Convert dates to ISO format
         const dobConverted = new Date(DOB).toISOString().slice(0, 19).replace('T', ' ');
         const appointmentDateConverted = new Date(appointment_date).toISOString().slice(0, 19).replace('T', ' ');
 
+        // Construct SQL query
         const sqlQuery = `
             UPDATE appointment_main
-            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?, appointment_date = ?
+            SET first_name = ?, last_name = ?, sex = ?, DOB = ?, title = ?, reason_for_visit = ?, doctor_name = ?, phone = ?, appointment_date = ?, email = ?
             WHERE id = ?
         `;
 
+        // Call function to send update email
+        await sendUpdateEmail(email, first_name, last_name, appointmentDateConverted);
+
+        // Execute SQL query
         const updateResult = await pool.query(sqlQuery, [
             first_name,
             last_name,
@@ -105,9 +112,11 @@ export const updateAppointment = async (req, res, next) => {
             doctor_name,
             phone,
             appointmentDateConverted,
-            id,
+            email, // Add email parameter
+            id, // Remove declaration of id
         ]);
 
+        // Check if appointment was found and updated
         if (updateResult.affectedRows === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -115,6 +124,7 @@ export const updateAppointment = async (req, res, next) => {
             });
         }
 
+        // Return success response
         res.status(200).json({
             status: 'success',
             message: 'Appointment updated successfully',
@@ -132,6 +142,7 @@ export const updateAppointment = async (req, res, next) => {
             },
         });
     } catch (error) {
+        // Handle errors
         console.error('Error updating appointment:', error);
         res.status(500).json({
             status: 'error',

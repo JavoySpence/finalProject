@@ -33,15 +33,15 @@ appointmentRouter
     .delete(deleteAppointment);
 
 //  route to count items
- appointmentRouter
-  .route('/count')
-  .get(getCountOfAppointments);
+//  appointmentRouter
+//   .route('/count')
+//   .get(getCountOfAppointments);
 
 
   // Add the search route here
-appointmentRouter
-.route('/search')
-.get(searchAppointmentsByDoctorName);
+// appointmentRouter
+// .route('/search')
+// .get(searchAppointmentsByDoctorName);
 
 appointmentRouter
     .route('/doctors')
