@@ -1,13 +1,13 @@
 import { pool } from '../database/dbConnection.js';
 import schedule from 'node-schedule';
 import { sendEmailNotification } from '../utils/emailUtils.js';
-import { sendReminderEmail } from '../utils/reminderEmailUtils.js';
+import {  scheduleReminderEmail } from '../utils/reminderEmailUtils.js';
 import {sendUpdateEmail} from '../utils/updateAppointmentEmail.js';
 
 export const getAllAppointments = async (req, res, next) => {
     try {
         const page = parseInt(req.body.page, 10) || 1; 
-        const limit = parseInt(req.body.limit, 10) || 10; 
+        const limit = parseInt(req.body.limit, 500) || 500; 
         const offset = (page - 1) * limit;
         const searchTerm = req.body.searchTerm; 
 
@@ -16,21 +16,27 @@ export const getAllAppointments = async (req, res, next) => {
         }
 
         let query = 'SELECT * FROM appointment_main';
+        let countQuery = 'SELECT COUNT(*) as total FROM appointment_main';
         let queryParams = [];
+        let countQueryParams = [];
 
         if (searchTerm && searchTerm.trim() !== '') {
             query += ' WHERE appointment_date LIKE ?';
+            countQuery += ' WHERE appointment_date LIKE ?';
             queryParams.push(`%${searchTerm}%`);
+            countQueryParams.push(`%${searchTerm}%`);
         }
 
         query += ' LIMIT ? OFFSET ?';
         queryParams.push(limit, offset);
 
         const [appointments] = await pool.query(query, queryParams);
+        const [countResult] = await pool.query(countQuery, countQueryParams);
 
         res.status(200).json({
             status: 'success',
             results: appointments.length,
+            totalResults: countResult[0].total,
             data: { appointments },
         });
     } catch (error) {
@@ -180,9 +186,7 @@ export const createAppointment = async (req, res, next) => {
         );
 
     
-        await sendEmailNotification(email, first_name,last_name, appointmentDateConverted);
-        await sendReminderEmail (email, first_name,last_name, appointmentDateConverted)
-
+       
         res.status(201).json({
             status: 'success',
             message: 'Appointment created successfully and reminder email scheduled.',
@@ -201,6 +205,10 @@ export const createAppointment = async (req, res, next) => {
                 medications_taken,
             },
         });
+
+        await sendEmailNotification(email, first_name,last_name, appointmentDateConverted);
+        scheduleReminderEmail (email, first_name,last_name, appointmentDateConverted)
+
     } catch (error) {
         console.error('Error creating appointment:', error);
         res.status(500).json({

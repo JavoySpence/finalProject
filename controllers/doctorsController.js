@@ -24,6 +24,8 @@ export const getAllDoctors = async (req, res, next) => {
 
         const [doctors] = await pool.query(query);
 
+        console.log(doctors)
+
         res.status(200).json({
             status: 'success',
             results: doctors.length,
